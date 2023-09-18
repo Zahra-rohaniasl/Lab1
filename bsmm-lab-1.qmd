@@ -28,17 +28,61 @@ library(Lahman)
 dplyr::glimpse(Teams)
 ```
 
+```{r}
+?Teams
+```
+
+```{r}
+dplyr::glimpse(Teams |> head())
+```
+
 The `Teams` dataset has \_\_\_ observations and \_\_\_ variables.
 
 ### Exercise 2
+
+```{r}
+library(magrittr)
+mets <- Teams  %>% 
+  dplyr::filter(teamID == "NYN")
+my_mets <- mets %>% 
+  dplyr::filter(yearID %in% 2004:2012) %>%
+  dplyr::select(yearID,G,W,L)
+my_mets
+
+```
 
 ...
 
 ### Exercise 3
 
+```{r}
+mets_ben <- Teams |>
+  dplyr::select(yearID, teamID, G, W, L, RA, RS = R) |>
+  dplyr::filter(teamID == "NYN" & yearID %in% 2004:2012)
+mets_ben
+```
+
 ...
 
+```{r}
+mets_ben <- mets_ben |>
+  dplyr::rename(R = RS)    # new name = old name
+mets_ben
+```
+
 ### Exercise 4
+
+```{r}
+mets_ben <- mets_ben |>
+  dplyr::mutate(WPct = W/G)
+mets_ben
+```
+
+```{r}
+mets_ben <- mets_ben |>
+  dplyr::mutate(W_hat = WPct * G)
+mets_ben
+```
 
 ...
 
