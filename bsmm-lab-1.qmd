@@ -80,7 +80,7 @@ mets_ben
 
 ```{r}
 mets_ben <- mets_ben |>
-  dplyr::mutate(W_hat = WPct * G)
+  dplyr::mutate(W_hat = WPct * G)  #The expected number of wins is then equal to the product of the expected winning percentage times the number of games.
 mets_ben
 ```
 
