@@ -1,5 +1,14 @@
-# BSMM-lab-1
+# Tidy Data Wrangling
 
 ------------------------------------------------------------------------
 
-Starter materials for BSMM-8740 lab-1. See the course website for lab instructions.
+Introduction to Tidy data & Tidyverse syntax in R.
+
+Tidy Data
+A dataset is a collection of values, usually either numbers (if quantitative) or strings (if qualitative).
+
+Values are organised in two ways. Every value belongs to a variable and an observation.
+
+A variable contains all values that measure the same underlying attribute (like height, temperature, duration) across units. An observation contains all values measured on the same unit (like a person, or a day, or a race) across attributes.
+
+
