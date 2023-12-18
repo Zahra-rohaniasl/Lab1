@@ -4,7 +4,7 @@
 
 Introduction to Tidy data & Tidyverse syntax in R.
 
-Tidy Data
+Tidy Data:
 A dataset is a collection of values, usually either numbers (if quantitative) or strings (if qualitative).
 
 Values are organised in two ways. Every value belongs to a variable and an observation.
