@@ -1,186 +1,259 @@
----
-title: "BSMM-lab-1"
-subtitle: "BSMM 8740 Fall 2023"
-author: "Zahra Rohaniasl"
-date: "09/18/2023"
-format: html
-editor: visual
-self-contained: true
----
+Data: Yearly statistics and standings for baseball teams
+Today’s data is all baseball statistics. The data is in the Lahman package.
 
 ## Setup
 
 Load packages and data:
 
-```{r load-pkg-data}
-#| message: false
+```{r}
 # install the package 'Lahman'
 install.packages('Lahman')
 # load the package
 library(Lahman)
 ```
 
-## Exercises
+View the data
+Before doing any analysis, you will want to get quick view of the data. This is useful as part of the EDA process.
 
-### Exercise 1
-
-```{r glimpse-data}
-dplyr::glimpse(Teams)
+```{r}
+library(magrittr)
+library(Lahman)
+dim(Teams)
 ```
+
+Data dictionary
+The variable definitions are found in the help for Teams, and are listed below.
 
 ```{r}
 ?Teams
 ```
 
+
+
+## Exercises
+
+
+Exercise 1
+How many observations are in the Teams dataset? How many variables?
+
 ```{r}
-dplyr::glimpse(Teams |> head())
+# take the first three rows and glimpse the data
+Teams |> dplyr::slice_head(n=3) |> dplyr::glimpse()
 ```
 
-The `Teams` dataset has \_\_\_ observations and \_\_\_ variables.
 
-### Exercise 2
+SOLUTION
+From the dim(Teams) statement used after library(Lahman), there are 3015 observations and 48 variables.
+
+
+Exercise 2
+Ben Baumer worked for the New York Mets from 2004 to 2012. What was the team W/L record during those years? Use filter() and select() to quickly identify only those pieces of information that we care about.
+
+SOLUTION:
 
 ```{r}
-library(magrittr)
+# filter to use only rows where teamID equals "NYN"
 mets <- Teams  %>% 
   dplyr::filter(teamID == "NYN")
+# filter to use only rows where yearID is >= 2004 and <= 2012
+# you could also write dplyr::filter(yearID  %in% 2004:2012)
 my_mets <- mets %>% 
-  dplyr::filter(yearID %in% 2004:2012) %>%
-  dplyr::select(yearID,G,W,L)
-my_mets
-
+  dplyr::filter(yearID >= 2004 & yearID <= 2012)
+# the dataset needs to have at least the year and the won (W) loss (L) record for that year
+my_mets %>% 
+  dplyr::select(teamID,yearID,W,L)
 ```
 
-...
+Overall, the won-loss record was as follows:
 
-### Exercise 3
+```{r}
+my_mets %>% 
+  dplyr::select(teamID,yearID,W,L) %>% 
+  dplyr::summarize(
+    "2004-2012 wins" = sum(W)
+    , "2004-2012 losses" = sum(L)
+  )
+```
 
+Exercise 3
+The model estimates the expected winning percentage as follows:
+
+\hat{\text{W}}_{\text{pct}}=\frac{1}{1+\left(\frac{\text{RA}}{\text{RS}}\right)^{2}}
+
+where 
+ is the number of runs the team allows to be scored, 
+ is the number of runs that the team scores, and 
+ is the team’s expected winning percentage. The runs scored and allowed are present in the Teams table, so we start by selecting them.
+
+SOLUTION:
 ```{r}
 mets_ben <- Teams |>
-  dplyr::select(yearID, teamID, G, W, L, RA, RS = R) |>
+  # select to get the columns you want
+  dplyr::select(teamID, yearID, W, L, R, RA) |>
+  # filter to get the rows you want
   dplyr::filter(teamID == "NYN" & yearID %in% 2004:2012)
-mets_ben
 ```
 
-...
+The column name can be changed with the dplyr::rename function (Use new_name = old_name to rename selected variables). Alternatively, you can rename the column directly in the select statement above, like this:
+
+dplyr::select(teamID,yearID,W,L,RS = R,RA)
 
 ```{r}
 mets_ben <- mets_ben |>
-  dplyr::rename(R = RS)    # new name = old name
+  dplyr::rename(RS = R)    # new name = old name
 mets_ben
 ```
 
-### Exercise 4
+Exercise 4
+Next, we need to compute the team’s actual winning percentage in each of these seasons. Thus, we need to add a new column to our data frame, and we do this with the mutate() command.
+
+
+SOLUTION:
+```{r}
+mets_ben <- mets_ben |>
+  # once we have the data, we mutate to add a new value (column), using the formula
+  dplyr::mutate( WPct = 1/(1 + (RA/RS)^2 ) )
+mets_ben
+```
+
+The expected number of wins is then equal to the product of the expected winning percentage times the number of games.
 
 ```{r}
 mets_ben <- mets_ben |>
-  dplyr::mutate(WPct = W/G)
+  # once we have calculated the expected winning percentage,
+  # the expected number of wins is the percentage times the total number of games played
+  dplyr::mutate( W_hat = WPct * (W+L) )
 mets_ben
 ```
 
-```{r}
-mets_ben <- mets_ben |>
-  dplyr::mutate(W_hat = WPct * G)  #The expected number of wins is then equal to the product of the expected winning percentage times the number of games.
-mets_ben
-```
+Exercise 5
+In this case, the Mets’ fortunes were better than expected in three of these seasons, and worse than expected in the other six.
 
-...
+We can confirm this as follows:
 
-### Exercise 5
 
-...
-
-### Exercise 6
-```{r}
-dplyr::arrange(mets_ben,desc(WPct))
-```
-
-...
-
-### Exercise 7
+SOLUTION:
 ```{r}
 mets_ben %>% 
+  # first check that the assertion above is correct
+  dplyr::summarize('better then expected' = sum(W >= W_hat), 'worse than expected' = sum(W < W_hat))
+```
+
+To see how the Mets did over all seasons we can repeat our calculation
+
+```{r}
+Teams |>
+  # here we repeat our prior calculation (all steps combined) for all the years in the dataset
+  dplyr::select(teamID, yearID, W, L, RS = R, RA) |>
+  dplyr::filter(teamID == "NYN") |>
+  dplyr::mutate( 
+    WPct = 1/(1 + (RA/RS)^2 )
+    , W_hat = WPct * (W+L)
+  )  |> 
+dplyr::summarize( 
+  "better then expected" = sum(W >= W_hat)
+  , 'worse than expected' = sum(W < W_hat) 
+)
+```
+
+Exercise 6
+Naturally, the Mets experienced ups and downs during Ben’s time with the team. Which seasons were best? To figure this out, we can simply sort the rows of the data frame by number of wins.
+
+SOLUTION:
+```{r}
+# for this we just need to sort the number of wins in descending order
+mets_ben |> dplyr::arrange(desc(W))
+```
+
+
+Exercise 7
+In 2006, the Mets had the best record in baseball during the regular season and nearly made the World Series. How do these seasons rank in terms of the team’s performance relative to our model?
+
+SOLUTION:
+```{r}
+mets_ben %>% 
+  # add a column with the difference between wins (W) and expected wins (W_hat)
   dplyr::mutate(Diff = W - W_hat) |>
-  dplyr::arrange(desc (Diff))
+  # then sort the result
+  dplyr::arrange(desc(Diff))
 ```
 
-...
+In the years 2006, 2007 and 2012, the Mets had more wins than expected by the model. In all other seasons they performed worse than predicted by the model.
 
-### Exercise 8
+
+Exercise 8
+We can summarize the Mets performance as follows:
+
+SOLUTION:
 ```{r}
-
-library(dplyr)
 mets_ben |>
-    dplyr::summarize(
-    num_years = n(), 
-    total_W = sum(W), 
-    total_L = sum(L), 
-    total_WPct = sum(WPct), 
-    sum_resid = sum(W - W_hat)
+  dplyr::summarize(
+    num_years = dplyr::n(),  # number of years
+    total_W = sum(W),        # total number of wins
+    total_L = sum(L),        # total number of losses
+    total_WPct = total_W / (total_W + total_L) # win percentage
   )
 ```
 
-...
+In these nine years, the Mets had a combined record of 728 wins and 730 losses, for an overall winning percentage of 49.93%.
 
-### Exercise 9
-```{r}
-install.packages("readr")
-  library(readr)
-IKEA <- read_csv("E:/Zahra-Courses/semester3/Algorithm/github/lab/IKEA.csv")
-```
-```{r}
-head(IKEA)
-```
-```{r}
-library(ggplot2)
+Exercise 9
+Discretize the years into three chunks: one for each of the three general managers under whom Ben worked. Jim Duquette was the Mets’ general manager in 2004, Omar Minaya from 2005 to 2010, and Sandy Alderson from 2011 to 2012.
 
-ggplot(data = IKEA, aes(x = width, y = price)) +
-  geom_point() + 
-  labs(
-    x = "Width (inches)", 
-    y = "Price (USD)", 
-    title = "Relationship Between Width and Price of Ikea Furniture"
+
+```{r}
+mets_ben %>% 
+  # this questions requires a logic for deciding 
+  # which years each general manager worked
+  dplyr::mutate(
+    # nested ifelse statements are OK for this logic, 
+    # but are only practical for about three cases
+    gm = ifelse(
+      yearID == 2004, 
+      'Jim Duquette', 
+      ifelse(
+        yearID >= 2011, 
+        'Sandy Alderson', 
+        'Omar Minaya')
+    )
   )
-
 ```
 
-...
+Alternatively, we can use the case_when function
 
-### Exercise 10
 ```{r}
 mets_ben <- mets_ben |>
   dplyr::mutate(
-    gm = ifelse(
-      yearID == 2004, 
-      "Duquette", 
-      ifelse(
-        yearID >= 2011, 
-        "Alderson", 
-        "Minaya")
+    # same problem, but case_when is easier to work with
+    gm = dplyr::case_when(
+      yearID == 2004 ~ 'Jim Duquette', 
+      yearID >= 2011 ~ 'Sandy Alderson', 
+      TRUE ~ 'Omar Minaya' # this is the default case
     )
   )
+mets_ben
 ```
 
+
+Exercise 10
+Use the gm function to define the manager groups with the group_by() operator, and run the summaries again, this time across the manager groups.
+
+SOLUTION:
+mets_ben
+
 ```{r}
-mets_ben <- mets_ben |>
-    dplyr::mutate(
-    gm = case_when(
-      yearID == 2004 ~ "Duquette", 
-      yearID >= 2011 ~ "Alderson", 
-      TRUE ~ "Minaya"
-    )
-  )
-```
-```{r}
-mets_ben |>
-  group_by(gm) |>
+mets_ben %>% 
+  # group by managers
+  dplyr::group_by(gm) %>% 
+  # summarize - one row for each manager
   dplyr::summarize(
-    num_years = n(), 
+    num_years = dplyr::n(), 
     total_W = sum(W), 
     total_L = sum(L), 
-    total_WPct = sum(WPct), 
-    sum_resid = sum(W - W_hat)
-  ) |>
-  arrange(desc(sum_resid))
+    total_WPct = total_W / (total_W + total_L)
+  ) %>% 
+  # gt:: functions create and format tables
+  gt::gt('gm') %>%          # create the table from the data, 
+                            # and use 'gm' as the rownames
+  gtExtras::gt_theme_espn() # apply a theme to the format
 ```
-...
