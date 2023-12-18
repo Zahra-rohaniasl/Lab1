@@ -1,6 +1,8 @@
-# Tidy Data Wrangling
+# Yearly statistics and standings for baseball teams
 
 ------------------------------------------------------------------------
+Today’s data is all baseball statistics. The data is in the Lahman package.
+
 
 Introduction to Tidy data & Tidyverse syntax in R.
 
